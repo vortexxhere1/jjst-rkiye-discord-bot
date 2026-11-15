@@ -1,7 +1,4 @@
 const Level = require('../models/Level');
-const { Groq } = require('groq-sdk');
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const levelRoles = {
     5: '1556017805759877251',
@@ -17,7 +14,6 @@ const levelRoles = {
 };
 
 const cooldowns = new Set();
-const userHistories = new Map();
 
 module.exports = {
     name: 'messageCreate',
@@ -73,55 +69,9 @@ module.exports = {
             }
         }
 
+        // Etiketlendiğinde basit yanıt (Groq kaldırıldı)
         if (message.mentions.has(message.client.user)) {
-            const cleanContent = message.content
-                .replace(`<@!${message.client.user.id}>`, '')
-                .replace(`<@${message.client.user.id}>`, '')
-                .trim();
-
-            if (!cleanContent) {
-                return message.reply('Efendim. Dinliyorum.');
-            }
-
-            try {
-                await message.channel.sendTyping();
-
-                const systemInstruction = "You are a concise, plain, and straightforward AI assistant. Keep all responses short and directly to the point. Never use any emojis. Do not output unnecessary text or overcomplicate answers. Use the context of the user's recent messages to maintain a natural conversation flow.";
-
-                if (!userHistories.has(userId)) {
-                    userHistories.set(userId, []);
-                }
-                const history = userHistories.get(userId);
-
-                history.push({ role: "user", content: cleanContent });
-
-                if (history.length > 10) {
-                    history.shift();
-                }
-
-                const completion = await groq.chat.completions.create({
-                    messages: [
-                        { role: "system", content: systemInstruction },
-                        ...history
-                    ],
-                    model: "openai/gpt-oss-20b",
-                    max_tokens: 500,
-                });
-
-                const replyText = completion.choices[0]?.message?.content || "Yanit uretilemedi.";
-
-                history.push({ role: "assistant", content: replyText });
-
-                if (replyText.length > 2000) {
-                    return message.reply(replyText.substring(0, 1997) + '...');
-                }
-
-                return message.reply(replyText);
-
-            } catch (error) {
-                console.error('Groq API Error:', error);
-                return message.reply('Hata olustu.');
-            }
+            return message.reply('Efendim. Dinliyorum.');
         }
 
         const content = message.content
