@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,6 +19,7 @@ for (const file of commandFiles) {
 
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
+
 const rest = new REST().setToken(TOKEN);
 
 (async () => {

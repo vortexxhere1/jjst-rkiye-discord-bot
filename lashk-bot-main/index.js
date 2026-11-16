@@ -182,7 +182,7 @@ client.once('ready', async () => {
 
     // Botun durumu (DND) ve aktivitesi[cite: 2]
     client.user.setPresence({
-        activities: [{ name: "A bot for LASHK'S community", type: ActivityType.Playing }],
+        activities: [{ name: "JJS Türkiye", type: ActivityType.Playing }],
         status: 'dnd'
     });
 
