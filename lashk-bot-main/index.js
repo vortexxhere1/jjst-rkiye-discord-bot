@@ -22,7 +22,6 @@ const levelRoles = {
     50: '1556017895618781345'
 };
 
-// Render.com için mini Express sunucusu[cite: 2]
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -34,25 +33,23 @@ app.listen(PORT, () => {
     console.log(`Web sunucusu ${PORT} portunda çalışıyor.`);
 });
 
-// Discord Bot İstemcisi ve RAM Tasarruflu Önbellek Yapılandırması [RENDER OPTİMİZASYONU & AUTOMOD][cite: 2]
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildVoiceStates, // Ses kanalı durumları için[cite: 2]
-        GatewayIntentBits.AutoModerationExecution // AutoMod rozeti ve olayları için eklenen yetki[cite: 2]
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.AutoModerationExecution
     ],
     makeCache: Options.cacheWithLimits({
-        MessageManager: 30,     // Kanallarda tutulan mesaj önbelleğini sınırlar[cite: 2]
-        PresenceManager: 0,     // Üye durumlarını (aktiviteleri) bellekte tutmayarak büyük RAM tasarrufu sağlar[cite: 2]
+        MessageManager: 30,
+        PresenceManager: 0,
         ThreadManager: 10,
         VoiceStateManager: 20
     })
 });
 
-// --- KOMUT YÜKLEYİCİ (COMMANDS) ---[cite: 2]
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 
@@ -66,7 +63,6 @@ if (fs.existsSync(commandsPath)) {
     }
 }
 
-// --- OLAY (EVENTS) YÜKLEYİCİ ---[cite: 2]
 const eventsPath = path.join(__dirname, 'events');
 if (fs.existsSync(eventsPath)) {
     const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
@@ -81,7 +77,6 @@ if (fs.existsSync(eventsPath)) {
     }
 }
 
-// --- MONGODB BAĞLANTISI ---[cite: 2]
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('✅ MongoDB veritabanına başarıyla bağlanıldı!');
@@ -90,7 +85,7 @@ mongoose.connect(process.env.MONGO_URI)
         console.error('❌ MongoDB bağlantı hatası:', err);
     });
 
-// --- 7/24 SES KANALI BAĞLANTI FONKSİYONU ---[cite: 2]
+// --- 7/24 SES KANALI BAĞLANTI FONKSİYONU (Hata Korumalı) ---
 async function connectToVoiceChannel() {
     const channelId = process.env.VOICE_CHANNEL_ID;
     if (!channelId) return;
@@ -107,6 +102,11 @@ async function connectToVoiceChannel() {
             selfMute: false
         });
 
+        // Ses bağlantısı hata alsa bile botun çökmesini önler
+        connection.on('error', (error) => {
+            console.error('Ses bağlantı hatası yakalandı (Çökme engellendi):', error);
+        });
+
         connection.on(VoiceConnectionStatus.Disconnected, async () => {
             try {
                 await Promise.race([
@@ -115,17 +115,16 @@ async function connectToVoiceChannel() {
                 ]);
             } catch (error) {
                 connection.destroy();
-                connectToVoiceChannel();
+                setTimeout(() => connectToVoiceChannel(), 10_000);
             }
         });
 
-        console.log(`🔊 Ses kanalına 7/24 bağlanıldı: ${channel.name}`);
+        console.log(`🔊 Ses kanalına bağlanıldı: ${channel.name}`);
     } catch (error) {
         console.error('Ses kanalına bağlanırken hata oluştu:', error);
     }
 }
 
-// --- SES KANALINDAKİLERE XP VERME SİSTEMİ (Her 60 saniyede 4 XP) ---[cite: 2]
 function startVoiceXpInterval() {
     setInterval(async () => {
         try {
@@ -136,7 +135,7 @@ function startVoiceXpInterval() {
                     const members = channel.members.filter(m => !m.user.bot);
                     
                     for (const [memberId, member] of members) {
-                        const xpToAdd = 4; // Ses kanalından dakikada kazanılacak XP[cite: 2]
+                        const xpToAdd = 4;
                         
                         let userLevel = await Level.findOne({ userId: memberId, guildId });
                         if (!userLevel) {
@@ -176,11 +175,9 @@ function startVoiceXpInterval() {
     }, 60000);
 }
 
-// --- BOT HAZIR OLDUĞUNDA ---[cite: 2]
 client.once('ready', async () => {
     console.log(`Bot aktif: ${client.user.tag}`);
 
-    // Botun durumu (DND) ve aktivitesi[cite: 2]
     client.user.setPresence({
         activities: [{ name: "JJS Türkiye", type: ActivityType.Playing }],
         status: 'dnd'
@@ -188,6 +185,15 @@ client.once('ready', async () => {
 
     connectToVoiceChannel();
     startVoiceXpInterval();
+});
+
+// Beklenmeyen hataların botu çökmesini önler
+process.on('uncaughtException', (err) => {
+    console.error('Beklenmeyen hata (Çökme engellendi):', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('İşlenmeyen sözleşme hatası (Çökme engellendi):', reason);
 });
 
 client.login(process.env.TOKEN);

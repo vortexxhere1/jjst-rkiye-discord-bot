@@ -29,6 +29,9 @@ module.exports = {
                 return interaction.reply({ content: '❌ Bu komutu kullanmak için Yönetici yetkin olmalı!', ephemeral: true });
             }
 
+            // Zaman aşımını önlemek için anında gizli yanıt veriyoruz
+            await interaction.reply({ content: '✅ Doğrulama paneli oluşturuluyor...', ephemeral: true });
+
             const embed = new EmbedBuilder()
                 .setTitle('🎮 ROBLOX DOĞRULAMA SİSTEMİ')
                 .setColor('#00a2ff')
@@ -45,12 +48,10 @@ module.exports = {
                     .setStyle(ButtonStyle.Success)
             );
 
-            await interaction.reply({ content: '✅ Doğrulama paneli bu kanala gönderiliyor...', ephemeral: true });
             return interaction.channel.send({ embeds: [embed], components: [row] });
         }
     },
 
-    // Butona basıldığında veritabanı beklemeden ANINDA formu açar (Timeout hatasını önler)
     async handleButton(interaction) {
         if (interaction.customId === 'btn_open_verify_modal') {
             const modal = new ModalBuilder()
@@ -69,7 +70,6 @@ module.exports = {
         }
     },
 
-    // Modal doldurulup gönderildiğinde çalışacak kısım (Kontroller burada yapılır)
     async handleModal(interaction) {
         if (interaction.customId === 'verify_modal') {
             await interaction.deferReply({ ephemeral: true });
