@@ -24,9 +24,7 @@ module.exports = {
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
-        // 1. Yönetici Panel Kurulum Komutu (/verify setup)
         if (subcommand === 'setup') {
-            // İsteğe bağlı: Sadece yöneticilerin kurabilmesi için yetki kontrolü ekleyebilirsin
             if (!interaction.member.permissions.has('Administrator')) {
                 return interaction.reply({ content: '❌ Bu komutu kullanmak için Yönetici yetkin olmalı!', ephemeral: true });
             }
@@ -52,19 +50,9 @@ module.exports = {
         }
     },
 
-    // Butona basıldığında açılacak Modal (Form)
+    // Butona basıldığında veritabanı beklemeden ANINDA formu açar (Timeout hatasını önler)
     async handleButton(interaction) {
         if (interaction.customId === 'btn_open_verify_modal') {
-            const discordUserId = interaction.user.id;
-
-            const isAlreadyVerified = await VerifiedUser.findOne({ userId: discordUserId });
-            if (isAlreadyVerified) {
-                return interaction.reply({
-                    content: `❌ Zaten **${isAlreadyVerified.robloxUsername}** olarak doğrulanmış bir hesabın var!`,
-                    ephemeral: true
-                });
-            }
-
             const modal = new ModalBuilder()
                 .setCustomId('verify_modal')
                 .setTitle('Roblox Doğrulama');
@@ -81,13 +69,20 @@ module.exports = {
         }
     },
 
-    // Modal doldurulup gönderildiğinde çalışacak kısım
+    // Modal doldurulup gönderildiğinde çalışacak kısım (Kontroller burada yapılır)
     async handleModal(interaction) {
         if (interaction.customId === 'verify_modal') {
             await interaction.deferReply({ ephemeral: true });
 
             const robloxUsername = interaction.fields.getTextInputValue('roblox_username_input');
             const discordUserId = interaction.user.id;
+
+            const isAlreadyVerified = await VerifiedUser.findOne({ userId: discordUserId });
+            if (isAlreadyVerified) {
+                return interaction.editReply({
+                    content: `❌ Zaten **${isAlreadyVerified.robloxUsername}** olarak doğrulanmış bir hesabın var!`
+                });
+            }
 
             try {
                 const userSearchRes = await axios.post('https://users.roblox.com/v1/usernames/users', {
@@ -127,7 +122,7 @@ module.exports = {
                         `Aşağıdaki kodu Roblox profilinin **Hakkında** bölümüne yapıştır:\n\n` +
                         `# \`\`\`${randomCode}\`\`\`\n` +
                         `### 3️⃣ Tamamlama:\n` +
-                        `Kodu ekledikten sonra aşağıdaki **"Onayla"** butonuna tıkla!`
+                        `Kodu ekledikten sonra aşağıdaki **"Onayla ve Bitir"** butonuna tıkla!`
                     )
                     .setFooter({ text: '⏰ Bu kod 10 dakika geçerlidir.' });
 
