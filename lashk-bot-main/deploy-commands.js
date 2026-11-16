@@ -1,42 +1,36 @@
 const { REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-require('dotenv').config();
 
 const commands = [];
-const commandNames = new Set();
-const foldersPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(foldersPath).filter(file => file.endsWith('.js'));
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
-    const filePath = path.join(foldersPath, file);
+    const filePath = path.join(commandsPath, file);
     const command = require(filePath);
     if ('data' in command && 'execute' in command) {
-        const name = command.data.name;
-        if (commandNames.has(name)) {
-            console.error(`⚠️ ÇAKIŞMA UYARISI: "${file}" dosyasındaki "${name}" ismi başka bir dosyada da var!`);
-        } else {
-            commandNames.add(name);
-            commands.push(command.data.toJSON());
-        }
+        commands.push(command.data.toJSON());
+    } else {
+        console.log(`[UYARI] ${filePath} dosyasındaki komutta 'data' veya 'execute' eksik.`);
     }
 }
 
-const rest = new REST().setToken(process.env.TOKEN);
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const rest = new REST().setToken(TOKEN);
 
 (async () => {
     try {
-        console.log(`🚀 Toplam ${commands.length} adet benzersiz komut Discord'a yükleniyor...`);
+        console.log(`🚀 Toplam ${commands.length} adet komut Discord'a yükleniyor...`);
 
-        await rest.put(
-            Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-            { body: commands }
+        const data = await rest.put(
+            Routes.applicationCommands(CLIENT_ID),
+            { body: commands },
         );
 
-        console.log('✅ Bütün komutlar başarıyla yüklendi!');
-        process.exit(0);
+        console.log(`✅ BAŞARILI! ${data.length} adet komut yüklendi!`);
     } catch (error) {
-        console.error('Yükleme Hatası:', error);
-        process.exit(1);
+        console.error(error);
     }
 })();
