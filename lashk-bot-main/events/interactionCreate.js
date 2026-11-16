@@ -58,11 +58,19 @@ module.exports = {
                 }
             }
 
-            // 3. MODAL SUBMIT (TICKET & BLACKLIST)
+            // 3. MODAL SUBMIT (VERIFY, TICKET & BLACKLIST)
             else if (interaction.isModalSubmit()) {
                 
-                // A) TICKET MODAL
-                if (interaction.customId.startsWith('modal_ticket_')) {
+                // A) VERIFY MODAL SUBMIT
+                if (interaction.customId === 'verify_modal') {
+                    const verifyCommand = interaction.client.commands.get('verify');
+                    if (verifyCommand && verifyCommand.handleModal) {
+                        await verifyCommand.handleModal(interaction);
+                    }
+                }
+
+                // B) TICKET MODAL
+                else if (interaction.customId.startsWith('modal_ticket_')) {
                     await interaction.deferReply({ ephemeral: true });
 
                     const guild = interaction.guild;
@@ -112,7 +120,7 @@ module.exports = {
                     return interaction.editReply({ content: `✅ Your support request has been successfully created: ${ticketChannel}` });
                 }
 
-                // B) BLACKLIST MODAL
+                // C) BLACKLIST MODAL
                 else if (interaction.customId.startsWith('modal_blacklist_')) {
                     await interaction.deferReply({ ephemeral: true });
 
@@ -156,8 +164,16 @@ module.exports = {
             // 4. BUTTON INTERACTIONS
             else if (interaction.isButton()) {
                 
-                // PING / ROLE SELECTION BUTTONS
-                if (interaction.customId.startsWith('ping_')) {
+                // A) OPEN VERIFY MODAL BUTTON
+                if (interaction.customId === 'btn_open_verify_modal') {
+                    const verifyCommand = interaction.client.commands.get('verify');
+                    if (verifyCommand && verifyCommand.handleButton) {
+                        await verifyCommand.handleButton(interaction);
+                    }
+                }
+
+                // B) PING / ROLE SELECTION BUTTONS
+                else if (interaction.customId.startsWith('ping_')) {
                     if (!interaction.deferred && !interaction.replied) {
                         await interaction.deferReply({ ephemeral: true }).catch(() => {});
                     }
@@ -203,7 +219,7 @@ module.exports = {
                     }
                 }
 
-                // A) ROBLOX VERIFICATION BUTTON
+                // C) ROBLOX VERIFICATION CHECK BUTTON
                 else if (interaction.customId === 'btn_verify_check') {
                     if (!interaction.deferred && !interaction.replied) {
                         await interaction.deferReply({ ephemeral: true }).catch(() => {});
@@ -214,7 +230,7 @@ module.exports = {
 
                     if (!pendingData) {
                         return interaction.editReply({
-                            content: '# ❌ EXPIRED OR INVALID ACTION\nNo active verification code found. Please run `/verify` again.'
+                            content: '# ❌ EXPIRED OR INVALID ACTION\nNo active verification code found. Please run `/verify` or click the verify button again.'
                         });
                     }
 
@@ -280,7 +296,7 @@ module.exports = {
                     }
                 }
 
-                // B) CLAN MATCH / VS JOIN BUTTON
+                // D) CLAN MATCH / VS JOIN BUTTON
                 else if (interaction.customId === 'btn_vs_join') {
                     const message = interaction.message;
                     const oldRow = message.components[0];
@@ -302,7 +318,7 @@ module.exports = {
                     return interaction.followUp({ content: '⚔️ You have successfully joined the clan match!', ephemeral: true });
                 }
 
-                // C) TICKET CLAIM
+                // E) TICKET CLAIM
                 else if (interaction.customId === 'btn_ticket_claim') {
                     const embed = interaction.message.embeds[0];
                     if (!embed) return interaction.reply({ content: '❌ Embed not found!', ephemeral: true });
@@ -319,7 +335,7 @@ module.exports = {
                     return interaction.followUp({ content: `✅ This support ticket has been claimed by <@${interaction.user.id}>!`, ephemeral: false });
                 }
 
-                // D) TICKET CLOSE & TRANSCRIPT
+                // F) TICKET CLOSE & TRANSCRIPT
                 else if (interaction.customId === 'btn_ticket_close') {
                     await interaction.reply({ content: '🔒 Closing ticket, sending transcript to log channel, and deleting channel...' });
 
