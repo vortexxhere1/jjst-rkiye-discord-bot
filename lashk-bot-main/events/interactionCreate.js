@@ -168,7 +168,7 @@ module.exports = {
                 if (interaction.customId === 'btn_open_verify_modal') {
                     const verifyCommand = interaction.client.commands.get('verify');
                     if (verifyCommand && verifyCommand.handleButton) {
-                        await verifyCommand.handleButton(interaction);
+                        return await verifyCommand.handleButton(interaction);
                     }
                 }
 
